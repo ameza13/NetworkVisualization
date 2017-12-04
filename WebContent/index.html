@@ -21,6 +21,7 @@
     <link href="css/simple-sidebar.css" rel="stylesheet">
     
 <style type="text/css">
+
 circle.node {
   stroke: #fff;
   stroke-width: 1.5px;
@@ -32,6 +33,11 @@ line.link {
   stroke-width: 1px;
 }
 
+div#chart{
+  stroke: #999;
+  stroke-opacity: .6;
+  stroke-width: 1px;
+}
 div#pop-up {
 	display: none;
 	position:absolute;
@@ -83,6 +89,7 @@ div#pop-up-link {
 
         <!-- Sidebar -->
         <div id="sidebar-wrapper">
+            <!-- 
             <ul class="sidebar-nav">
                 <li class="sidebar-brand">
                     <a href="#">
@@ -90,6 +97,8 @@ div#pop-up-link {
                     </a>
                 </li>
             </ul>
+             -->
+             <div id="displayArea"></div>
         </div>
         <!-- /#sidebar-wrapper -->
 
@@ -97,7 +106,8 @@ div#pop-up-link {
         <div id="page-content-wrapper">
             <div class="container-fluid">
                 <h1>Network Visualization</h1>
-                <a href="#menu-toggle" class="btn btn-secondary" id="menu-toggle">Toggle Menu</a>
+                <a href="#menu-toggle" class="btn btn-secondary" id="menu-toggle">Sidebar</a>
+                <br/>
                 <br/>
               <!-- Chart area -->
 			  <div id="chart">
@@ -116,6 +126,7 @@ div#pop-up-link {
 				  </div>
 			  </div>
 			  
+			  <input type="file" id="fileInput">
 			  <!--  
 			  <h6>Contact Information</h6>
 			  <table> 
