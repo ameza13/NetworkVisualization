@@ -33,6 +33,10 @@ var fisheye = d3.fisheye()
     .radius(100)
     .power(3);
 
+//@ameza: definition of zoom scale 
+var zoom = d3.behavior.zoom()
+	.scaleExtent([1, 10])
+	.on("zoom", redraw);
 /* g: is a container used to group other SVG elements.
  * Transformations applied to the <g> element are performed on all of its child elements.*/
 
@@ -43,7 +47,8 @@ var vis = d3.select("#chart")
     .attr("height", h)
     .attr("pointer-events", "all")
   .append('svg:g')
-    .call(d3.behavior.zoom().on("zoom", redraw))
+    //.call(d3.behavior.zoom().on("zoom", redraw)) //OLD
+    .call(zoom)
   .append('svg:g');
 
 //Notation: the notation above is the same that:
