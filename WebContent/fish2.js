@@ -116,7 +116,7 @@ var draw = function(nodesResults, linkResults) {
       .attr("y2", function(d) { return d.target.y; })
       //Assign events to the link
     .on("click", clickLink)
-    .on ("mouseover",moverLink) //TO DO: Not working right
+  //  .on ("mouseover",moverLink) //TO DO: Not working right
     .on ("mouseout",moutLink)
     ;
 
@@ -153,7 +153,7 @@ var draw = function(nodesResults, linkResults) {
 
     //@ameza:on click event for link
 
-	function clickLink(d) {debugger
+	function clickLink(d) {
     //elahe: get the ul from html, first clear it and then show the new info
     var list = document.getElementById('sidebarDisplayArea');
     list.innerHTML = "";
