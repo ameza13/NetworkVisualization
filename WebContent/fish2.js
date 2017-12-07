@@ -62,9 +62,17 @@ vis.append('svg:rect')
     .attr('height', h)
     .attr('fill', 'white');  //fill is a scale of colors
 
-//@elahe: contains all the uploded xml files info
+
+// elahe: Menu Toggle Script
+$("#menu-toggle").click(function(e) {
+    e.preventDefault();
+    $("#wrapper").toggleClass("toggled");
+});
+
+
+//elahe: contains all the uploded xml files info
 var xmlDoc = [];
-//@elahe: contains all the permissions based on their ID
+//elahe: contains all the permissions based on their ID
 var permissionResults = [];
 
 //Function called when zoom change
@@ -83,7 +91,7 @@ function redraw() {
 }
 
 
-//@elahe: this function's interface is changed to pass nodes and links data in splitted json objetcs
+//elahe: this function's interface is changed to pass nodes and links data in splitted json objetcs
 var draw = function(nodesResults, linkResults) {
 
   var force = d3.layout.force()
@@ -144,38 +152,130 @@ var draw = function(nodesResults, linkResults) {
     force.stop();
 
     //@ameza:on click event for link
-    var displayArea = document.getElementById('displayArea');
-	function clickLink(d) {
-		//TO DO: Display it on the sidebar
-		console.log("Communication/Permission: "+d.type);
-		displayArea.innerText = "click on communication/permission of type "+d.type;
+
+	function clickLink(d) {debugger
+    //elahe: get the ul from html, first clear it and then show the new info
+    var list = document.getElementById('sidebarDisplayArea');
+    list.innerHTML = "";
+    var entry = document.createElement('li');
+    entry.appendChild(document.createTextNode("Communication: " + d.type));
+    list.appendChild(entry);
+
+    entry = document.createElement('li');
+    entry.appendChild(document.createTextNode("Source: " + d.source.Package));
+    list.appendChild(entry);
+
+    entry = document.createElement('li');
+    entry.appendChild(document.createTextNode("Target: " + d.target.Package));
+    list.appendChild(entry);
+
 	}
     //@ameza:on click event for nodes
-	function clickNode(d) {debugger;
-    //@elahe: serach through xml files and find node's info based on package name
-    var xml = xmlDoc.filter(function(obj) {
-      return (obj.getElementsByTagName("packageName")[0].childNodes[0].nodeValue === d.Package);
-    });
-    //@elahe: search through all the permissions and find info based on ID
-    //@elahe: permissions are parsed from permission csv files in function findPermissions
-    var permission = [];
+	function clickNode(d) {
+    //elahe: get the ul from html, first clear it and then show the new info
+    var list = document.getElementById('sidebarDisplayArea');
+    list.innerHTML = "";
+    var entry = document.createElement('li');
+    entry.appendChild(document.createTextNode("ID: " + d.ID));
+    list.appendChild(entry);
+    entry = document.createElement('li');
+    entry.appendChild(document.createTextNode("Package: " + d.Package));
+    list.appendChild(entry);
+    entry = document.createElement('li');
+    entry.appendChild(document.createTextNode("Component: " + d.Component));
+    list.appendChild(entry);
+
+    //elahe: search through all the permissions and find info based on ID
+    //elahe: permissions are parsed from permission csv files in function findPermissions
     for (var i = 0; i < permissionResults.length; i++) {
       if (permissionResults[i].id === Number(d.ID)) {
-        permission.push(permissionResults[i].fileName + ": " + permissionResults[i].permissions);
+        entry = document.createElement('li');
+        entry.appendChild(document.createTextNode(permissionResults[i].fileName + ": " + permissionResults[i].permissions));
+        list.appendChild(entry);
       }
     }
 
-    var list = document.getElementById('sidebarDisplayArea');
-    var entry = document.createElement('li');
-    entry.appendChild(document.createTextNode(permission));
-    list.appendChild(entry);
+    //elahe: serach through xml files and find node's info based on package name
+    var xml = xmlDoc.filter(function(obj) {
+      return (obj.getElementsByTagName("packageName")[0].childNodes[0].nodeValue === d.Package);
+    });
+
+    // elahe: following are the codes to parse the xml files and show their available contents dynamically by adding ul and li
+    var components = xml[0].getElementsByTagName("component");
+    for(var i = 0; i < components.length; i++) {
+      if(components[i].getElementsByTagName("dsmIdx")[0].childNodes[0].nodeValue === d.ID) {
+        entry = document.createElement('li');
+        entry.appendChild(document.createTextNode("Type: " + components[i].getElementsByTagName("type")[0].childNodes[0].nodeValue));
+        list.appendChild(entry);
+
+        entry = document.createElement('li');
+        entry.appendChild(document.createTextNode("Exported: " + components[i].getElementsByTagName("exported")[0].childNodes[0].nodeValue));
+        list.appendChild(entry);
+
+        if(components[i].getElementsByTagName("compRequiredPermissions")[0].childNodes.length !== 0) { //elahe: most of the time they are empty
+          entry = document.createElement('li');
+          entry.appendChild(document.createTextNode("Component required permission: " + components[i].getElementsByTagName("compRequiredPermissions")[0].childNodes[0].nodeValue));
+          list.appendChild(entry);
+        }
+
+        if(components[i].getElementsByTagName("compActuallyUsedPermissions")[0].childNodes.length !== 0) { //elahe: most of the time they are empty
+          entry = document.createElement('li');
+          entry.appendChild(document.createTextNode("Component actually used permission: " + components[i].getElementsByTagName("compActuallyUsedPermissions")[0].childNodes[0].nodeValue));
+          list.appendChild(entry);
+        }
+
+        if(components[i].getElementsByTagName("intentFilters")[0].childNodes.length !== 0) { //elahe: most of the time they are empty
+          entry = document.createElement('li');
+          entry.appendChild(document.createTextNode("Intent Filter:"));
+          list.appendChild(entry);
+          var ul = document.createElement('ul');
+
+          var intentFilters = components[i].getElementsByTagName("intentFilters");
+          for(var j = 0; j < intentFilters.length; j++) {
+            entry = ul.appendChild(document.createElement('li'));
+            entry.appendChild(document.createTextNode("ID: " + intentFilters[j].getElementsByTagName("ifID")[0].childNodes[0].nodeValue));
+            list.appendChild(ul);
+
+            if(intentFilters[j].getElementsByTagName("actions")[0].childNodes.length !== 0) { //elahe: most of the time they are empty
+              var actions = intentFilters[j].getElementsByTagName("action");
+
+              for(var k = 0; k < actions.length; k++) {
+                entry = ul.appendChild(document.createElement('li'));
+                entry.appendChild(document.createTextNode("Action " + (k+1) + ": " + actions[k].textContent));
+                list.appendChild(ul);
+              }
+            } //Actions
+
+            if(intentFilters[j].getElementsByTagName("categories")[0].childNodes.length !== 0) { //elahe: most of the time they are empty
+              var categories = intentFilters[j].getElementsByTagName("category");
+
+              for(var m = 0; m < categories.length; m++) {
+                entry = ul.appendChild(document.createElement('li'));
+                entry.appendChild(document.createTextNode("Category " + (m+1) + ": " + categories[m].textContent));
+                list.appendChild(ul);
+              }
+            } //categories
+
+            if(intentFilters[j].getElementsByTagName("data")[0].childNodes.length !== 0) { //elahe: most of the time they are empty
+              entry = ul.appendChild(document.createElement('li'));
+              entry.appendChild(document.createTextNode("Data: " + intentFilters[j].getElementsByTagName("data")[0].childNodes[0].nodeValue));
+              list.appendChild(ul);
+            }
+
+            if(intentFilters[j].getElementsByTagName("dataPath")[0].childNodes.length !== 0) { //elahe: most of the time they are empty
+              entry = ul.appendChild(document.createElement('li'));
+              entry.appendChild(document.createTextNode("Data path: " + intentFilters[j].getElementsByTagName("dataPath")[0].childNodes[0].nodeValue));
+              list.appendChild(ul);
+            }
+
+          } //intentFilters
+
+      } //intentFilters
+
+      }
+    }
 
 
-    //@show the info in sidebar: should be better presented!
-		// displayArea.innerText = "<pre> Package Name: " + xml[0].getElementsByTagName("packageName")[0].childNodes[0].nodeValue
-    //                         + "\nApp ID: " + xml[0].getElementsByTagName("appId")[0].childNodes[0].nodeValue + " "
-    //                         + permission
-    //                         + "</pre>";
 	}
 
 	//@ameza: on mouse over event this method paints the pop-up next to the node manipulating the CSS of the div object
@@ -200,24 +300,25 @@ var draw = function(nodesResults, linkResults) {
         });
 
     }
-    //@ameza: on mouse over event this method paints the pop-up next to the link manipulating the CSS of the div object
-    function moverLink(d) {debugger;
-        $("#pop-up-link").fadeOut(100,function () {
-        	    var cType = "Permission: ";
-        	    if ((d.type =="Implicit") || (d.type=="Explicit")) {
-        	    		cType = "Communication: ";
-        	    }
-              //@elahe: should show the source and target
-        	    $("#pop-up-link-type").html(cType+d.type);
-              var popLeft = (d.source.x); //TO DO: Improve to display pop-up next to the line
-              var popTop = (d.source.y);
-              $("#pop-up-link").css({"left":popLeft,"top":popTop});
-              $("#pop-up-link").fadeIn(100);
-        });
 
-    }
+    //@ameza: on mouse over event this method paints the pop-up next to the link manipulating the CSS of the div object
+    // function moverLink(d) {
+    //     $("#pop-up-link").fadeOut(100,function () {
+    //     	    var cType = "Permission: ";
+    //     	    if ((d.type =="Implicit") || (d.type=="Explicit")) {
+    //     	    		cType = "Communication: ";
+    //     	    }
+    //           //elahe: should show the source and target
+    //     	    $("#pop-up-link-type").html(cType+d.type);
+    //           var popLeft = (d.source.x); //TO DO: Improve to display pop-up next to the line
+    //           var popTop = (d.source.y);
+    //           $("#pop-up-link").css({"left":popLeft,"top":popTop});
+    //           $("#pop-up-link").fadeIn(100);
+    //     });
+    //
+    // }
     //@ameza: on mouseout the pop-up disappears
-    //@elahe: sometimes it does not
+    //elahe: sometimes it does not
     function moutNode(d) {
         $("#pop-up").fadeOut(50);
         d3.select(this).attr("fill","url(#ten1)");
@@ -246,7 +347,7 @@ var draw = function(nodesResults, linkResults) {
     });
 };
 
-//@elahe: find the nodes from csv info
+//elahe: find the nodes from csv info
 function findNodes(object) {
   var file = object.files;
   var lines=file.split("\n");
@@ -258,7 +359,7 @@ function findNodes(object) {
     var obj = {};
     var currentline=lines[i].split(",");
 
-    for(var j=0;j<3;j++){ //@elahe:only need the first 3: package, component, ID
+    for(var j=0;j<3;j++){ //elahe:only need the first 3: package, component, ID
       obj[headers[j]] = currentline[j];
     }
 
@@ -267,7 +368,7 @@ function findNodes(object) {
   return nodes;
 }
 
-//@elahe: find the links from csv
+//elahe: find the links from csv
 function findLinks(files) {
   var links = [];
   var linkResults = [];
@@ -296,7 +397,7 @@ function findLinks(files) {
             {
               source: Number(links[i].ID),
               target:j,
-              type: (links[i].name.includes("implicit") ? "Implicit" : "Explicit") //@elahe: passes the type of communication
+              type: (links[i].name.includes("implicit") ? "Implicit" : "Explicit") //elahe: passes the type of communication
             }
           );
       }
@@ -305,7 +406,7 @@ function findLinks(files) {
     return linkResults;
 }
 
-//@elahe: gets the permission from csv files: granted, usage, enforcement
+//elahe: gets the permission from csv files: granted, usage, enforcement
 function findPermissions(files) {
   var links = [];
 
@@ -342,13 +443,13 @@ function findPermissions(files) {
   }
 }
 
-//@elahe: find the type of files and act upon them
+//elahe: find the type of files and act upon them
 function selectFiles(files) {
-  //@elahe:csv files
+  //elahe:csv files
   var csvs = files.filter(function(obj) {
     return (obj.fileName.includes("csv"));
   });
-  //@elahe: selecting the communication files
+  //elahe: selecting the communication files
   var communications = csvs.filter(function(obj) {
     return (obj.fileName.includes("implicit") || obj.fileName.includes("explicit"));
   });
@@ -358,7 +459,7 @@ function selectFiles(files) {
     draw(nodeResults, linkResults);
   }
 
-  //@elahe: selecting the permission files
+  //elahe: selecting the permission files
   var permissions = csvs.filter(function(obj) {
     return (obj.fileName.includes("permission"));
   });
@@ -366,7 +467,7 @@ function selectFiles(files) {
     findPermissions(permissions);
   }
 
-//@elahe: xml files
+//elahe: xml files
   var xmls = files.filter(function(obj) {
     return (obj.fileType.includes("xml"));
   });
@@ -378,14 +479,14 @@ function selectFiles(files) {
 
 }
 
-//@elahe: function to convert csv to json file and parse it data for nodes and links
+//elahe: function to convert csv to json file and parse it data for nodes and links
 var fileInput = document.getElementById('fileInput'); //@ameza: Line added to make it work
 fileInput.addEventListener('change', function(e) {
   var files = fileInput.files;
   var textType = /text.*/;
   var csv=[];
 
-  for (var i = 0; i < files.length; i++) { //@elahe: for multiple files - this loop helps receving the files after it is loaded and check their type
+  for (var i = 0; i < files.length; i++) { //elahe: for multiple files - this loop helps receving the files after it is loaded and check their type
       (function(file) {
         if (file.type.match(textType)) {
           var reader = new FileReader();
