@@ -41,7 +41,7 @@ function defineComponent(MaliciousComponent){
 		return "#8FBC8F";} //Green: is a vulnerable component
 }
 
-//@ameza: definition of zoom scale 
+//@ameza: definition of zoom scale
 var zoom = d3.behavior.zoom()
 	.scaleExtent([1, 10])
 	.on("zoom", redraw);
@@ -82,7 +82,8 @@ $("#menu-toggle").click(function(e) {
     $("#wrapper").toggleClass("toggled");
 });
 
-
+//elahe: contains mal apps info
+var malApps = [];
 //elahe: contains all the uploded xml files info
 var xmlDoc = [];
 //elahe: contains all the permissions based on their ID
@@ -122,7 +123,7 @@ var draw = function(nodesResults, linkResults) {
       .attr("class", "link") //CSS class
       //.style("stroke-width", function(d) { return Math.sqrt(d.value); }) //OLD
       //.style("stroke-width", 1)
-      
+
       //Declare link's attributes: source and target coordinates
       .attr("x1", function(d) { return d.source.x; })
       .attr("y1", function(d) { return d.source.y; })
@@ -145,8 +146,7 @@ var draw = function(nodesResults, linkResults) {
       .attr("r", 5) //radious length
       //.attr("component", function(d) { return d.Component;}) //To delete
       .style("fill", function(d) { return fill(d.Package); }) //Assign the color to each node based on the app name
-      .style("stroke", function(d){ return defineComponent(false) }) //TEST @ameza: will show all the nodes as not malicious
-      //.style("stroke", function(d){ return defineComponent(/*d.Malicious*/)}) //@ameza: discomment when JSON includes the "malicious" attribute, and comment previous line
+      .style("stroke", function(d){ return defineComponent(d.malApp)})
     //Assign events to the node
 	.on("click", clickNode)
     .on ("mouseover",moverNode)
@@ -171,6 +171,8 @@ var draw = function(nodesResults, linkResults) {
 
 	function clickLink(d) {
     //elahe: get the ul from html, first clear it and then show the new info
+    var malList = document.getElementById('sidebarDisplayAreaMal');
+    malList.innerHTML = "";
     var list = document.getElementById('sidebarDisplayArea');
     list.innerHTML = "";
     var entry = document.createElement('li');
@@ -189,9 +191,17 @@ var draw = function(nodesResults, linkResults) {
     //@ameza:on click event for nodes
 	function clickNode(d) {
     //elahe: get the ul from html, first clear it and then show the new info
+    var malList = document.getElementById('sidebarDisplayAreaMal');
+    malList.innerHTML = "";
     var list = document.getElementById('sidebarDisplayArea');
     list.innerHTML = "";
-    var entry = document.createElement('li');
+
+    var entry = document.createElement('h5');
+    entry.style.cssText = 'margin-left: -25px;';
+    entry.appendChild(document.createTextNode("Component Information"));
+    list.appendChild(entry);
+
+    entry = document.createElement('li');
     entry.appendChild(document.createTextNode("ID: " + d.ID));
     list.appendChild(entry);
     entry = document.createElement('li');
@@ -291,6 +301,28 @@ var draw = function(nodesResults, linkResults) {
       }
     }
 
+    // elahe: if the App is malicious, show its info
+    for (var k = 0; k < malApps.length; k++) {
+      if(d.ID === malApps[k].malID) {
+        var malEntry = document.createElement('h5');
+        malEntry.style.cssText = 'margin-left: -25px;margin-top: 40px;';
+        malEntry.appendChild(document.createTextNode("Malicious Component"));
+        malList.appendChild(malEntry);
+
+        malEntry = document.createElement('li');
+        malEntry.appendChild(document.createTextNode("Type: " + malApps[k].type));
+        malList.appendChild(malEntry);
+
+        var malEntry = document.createElement('li');
+        malEntry.appendChild(document.createTextNode("Vulnerable Component: " + malApps[k].vulComp));
+        malList.appendChild(malEntry);
+
+        malEntry = document.createElement('li');
+        malEntry.appendChild(document.createTextNode("Resource: " + malApps[k].resource));
+        malList.appendChild(malEntry);
+
+      }
+    }
 
 	}
 
@@ -378,10 +410,16 @@ function findNodes(object) { //add parameter with the xml file
     for(var j=0;j<3;j++){ //elahe:only need the first 3: package, component, ID
       obj[headers[j]] = currentline[j];
     }
+    obj["malApp"] = false;
 
+    for(var j=0;j<malApps.length;j++) { //elahe: checks if the the app is malicious
+      if(obj.ID === malApps[j].malID) {
+        obj["malApp"] = true;
+      }
+    }
     nodes.push(obj);
   }
-  
+
   return nodes;
 }
 
@@ -460,39 +498,79 @@ function findPermissions(files) {
   }
 }
 
+//elahe: this function parses the analysis result xml file and returns the mal apps and their related info
+function parseXml(analysisResult) {
+  var privileges = analysisResult.getElementsByTagName("privilegeEscalationInstance");
+  for(var i = 0; i < privileges.length; i++) {
+    malApps.push({
+      malID: privileges[i].getElementsByTagName("malCompDsmIdx")[0].childNodes[0].nodeValue,
+      vulID: privileges[i].getElementsByTagName("vulCompDsmIdx")[0].childNodes[0].nodeValue,
+      vulComp: privileges[i].getElementsByTagName("vulComp")[0].childNodes[0].nodeValue,
+      resource: privileges[i].getElementsByTagName("resource")[0].childNodes[0].nodeValue,
+      type: "Privilege Escalation Instance"
+    });
+  }
+  var spoofing = analysisResult.getElementsByTagName("intentSpoofingInstance");
+  for(var j = 0; j < spoofing.length; j++) {
+    malApps.push({
+      malID: spoofing[j].getElementsByTagName("malCompDsmIdx")[0].childNodes[0].nodeValue,
+      vulID: spoofing[j].getElementsByTagName("vulCompDsmIdx")[0].childNodes[0].nodeValue,
+      vulComp: spoofing[j].getElementsByTagName("vulComp")[0].childNodes[0].nodeValue,
+      resource: "Does not apply",
+      type: "Intent Spoofing Instance"
+    });
+  }
+  var receipt = analysisResult.getElementsByTagName("unauthorizedIntentReceiptInstance");
+  for(var k = 0; k < receipt.length; k++) {
+    malApps.push({
+      malID: receipt[k].getElementsByTagName("malCompDsmIdx")[0].childNodes[0].nodeValue,
+      vulID: receipt[k].getElementsByTagName("vulCompDsmIdx")[0].childNodes[0].nodeValue,
+      vulComp: receipt[k].getElementsByTagName("vulComp")[0].childNodes[0].nodeValue,
+      resource: "Does not apply",
+      type: "Unauthorized Intent Receipt Instance"
+    });
+  }
+}
+
 //elahe: find the type of files and act upon them
 function selectFiles(files) {
-  //elahe:csv files
-  var csvs = files.filter(function(obj) {
-    return (obj.fileName.includes("csv"));
-  });
-  //elahe: selecting the communication files
-  var communications = csvs.filter(function(obj) {
-    return (obj.fileName.includes("implicit") || obj.fileName.includes("explicit"));
-  });
-  if(communications.length !== 0) {
-    var nodeResults = findNodes(communications[0]);
-    var linkResults = findLinks(communications);
-    draw(nodeResults, linkResults);
-  }
 
-  //elahe: selecting the permission files
-  var permissions = csvs.filter(function(obj) {
-    return (obj.fileName.includes("permission"));
-  });
-  if(permissions.length !== 0) {
-    findPermissions(permissions);
-  }
+    //elahe: xml files
+    var xmls = files.filter(function(obj) {
+      return (obj.fileType.includes("xml"));
+    });
+    for(var i = 0; i < xmls.length; i++) {
+      var parser = new DOMParser();
+      if(xmls[i].fileName.includes("analysisResult")) { //elahe:get the analysis result
+        var analysisResult = parser.parseFromString(xmls[i].files,"text/xml")
+      }
+      else {
+        xmlDoc.push(parser.parseFromString(xmls[i].files,"text/xml"));
+      }
+    }
+    parseXml(analysisResult);
 
-//elahe: xml files
-  var xmls = files.filter(function(obj) {
-    return (obj.fileType.includes("xml"));
-  });
+    //elahe:csv files
+    var csvs = files.filter(function(obj) {
+      return (obj.fileName.includes("csv"));
+    });
+    //elahe: selecting the communication files
+    var communications = csvs.filter(function(obj) {
+      return (obj.fileName.includes("implicit") || obj.fileName.includes("explicit"));
+    });
+    if(communications.length !== 0) {
+      var nodeResults = findNodes(communications[0]);
+      var linkResults = findLinks(communications);
+      draw(nodeResults, linkResults);
+    }
 
-  for(var i = 0; i < xmls.length; i++) {
-    var parser = new DOMParser();
-    xmlDoc.push(parser.parseFromString(xmls[i].files,"text/xml"));
-  }
+    //elahe: selecting the permission files
+    var permissions = csvs.filter(function(obj) {
+      return (obj.fileName.includes("permission"));
+    });
+    if(permissions.length !== 0) {
+      findPermissions(permissions);
+    }
 
 }
 
@@ -501,13 +579,11 @@ function selectFiles(files) {
 var fileInput = document.getElementById('fileInput'); //@ameza: Line added to make it work
 fileInput.addEventListener('change', function(e) {
   var files = fileInput.files;
-  var textType = /text.*/;
   var csv=[];
 
-  
+
   for (var i = 0; i < files.length; i++) { //elahe: for multiple files - this loop helps receving the files after it is loaded and check their type
       (function(file) {
-        if (file.type.match(textType)) {
           var reader = new FileReader();
           reader.onload = function(e) {
               // get file content
@@ -519,15 +595,12 @@ fileInput.addEventListener('change', function(e) {
                 });
           }
           reader.readAsText(file);
-        } else {
-          alert("File not supported!")
-        }
       })(files[i]);
   }
 
   setTimeout(function () {
     selectFiles(csv);
-  }, 10);
+  }, 1000);
 
 
 });
