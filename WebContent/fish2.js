@@ -33,6 +33,14 @@ var fisheye = d3.fisheye()
     .radius(100)
     .power(3);
 
+//@ameza: To define malicious apps
+function defineComponent(MaliciousComponent){
+	if(MaliciousComponent){
+		return "#A52A2A"; //Red: is a malicious component
+	}else{
+		return "#8FBC8F";} //Green: is a vulnerable component
+}
+
 //@ameza: definition of zoom scale 
 var zoom = d3.behavior.zoom()
 	.scaleExtent([1, 10])
@@ -114,6 +122,7 @@ var draw = function(nodesResults, linkResults) {
       .attr("class", "link") //CSS class
       //.style("stroke-width", function(d) { return Math.sqrt(d.value); }) //OLD
       //.style("stroke-width", 1)
+      
       //Declare link's attributes: source and target coordinates
       .attr("x1", function(d) { return d.source.x; })
       .attr("y1", function(d) { return d.source.y; })
@@ -121,8 +130,8 @@ var draw = function(nodesResults, linkResults) {
       .attr("y2", function(d) { return d.target.y; })
       //Assign events to the link
     .on("click", clickLink)
-  //  .on ("mouseover",moverLink) //TO DO: Not working right
-    .on ("mouseout",moutLink)
+  //  .on ("mouseover",moverLink) //@ameza: mouse over changed for onclick
+  //  .on ("mouseout",moutLink)
     ;
 
   //@ameza: to configure nodes
@@ -136,6 +145,8 @@ var draw = function(nodesResults, linkResults) {
       .attr("r", 5) //radious length
       //.attr("component", function(d) { return d.Component;}) //To delete
       .style("fill", function(d) { return fill(d.Package); }) //Assign the color to each node based on the app name
+      .style("stroke", function(d){ return defineComponent(false) }) //TEST @ameza: will show all the nodes as not malicious
+      //.style("stroke", function(d){ return defineComponent(/*d.Malicious*/)}) //@ameza: discomment when JSON includes the "malicious" attribute, and comment previous line
     //Assign events to the node
 	.on("click", clickNode)
     .on ("mouseover",moverNode)
@@ -353,7 +364,7 @@ var draw = function(nodesResults, linkResults) {
 };
 
 //elahe: find the nodes from csv info
-function findNodes(object) {
+function findNodes(object) { //add parameter with the xml file
   var file = object.files;
   var lines=file.split("\n");
   var nodes = [];
@@ -370,6 +381,7 @@ function findNodes(object) {
 
     nodes.push(obj);
   }
+  
   return nodes;
 }
 
@@ -484,6 +496,7 @@ function selectFiles(files) {
 
 }
 
+
 //elahe: function to convert csv to json file and parse it data for nodes and links
 var fileInput = document.getElementById('fileInput'); //@ameza: Line added to make it work
 fileInput.addEventListener('change', function(e) {
@@ -491,6 +504,7 @@ fileInput.addEventListener('change', function(e) {
   var textType = /text.*/;
   var csv=[];
 
+  
   for (var i = 0; i < files.length; i++) { //elahe: for multiple files - this loop helps receving the files after it is loaded and check their type
       (function(file) {
         if (file.type.match(textType)) {
